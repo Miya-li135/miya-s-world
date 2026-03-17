@@ -177,7 +177,6 @@
             color: #8f9b9a;
         }
 
-        /* 梦龛 · 默认隐藏，6秒后浮现 */
         .zendo-dream {
             margin-top: 3rem;
             opacity: 0;
@@ -201,6 +200,12 @@
             line-height: 1.6;
             min-height: 80px;
             padding: 1rem 0;
+        }
+
+        .dream-date {
+            font-size: 0.8rem;
+            color: #8f9b9a;
+            margin-bottom: 0.5rem;
         }
 
         .dream-footer {
@@ -227,6 +232,8 @@
 
         .dream-input-area {
             margin-top: 1.5rem;
+            border-top: 1px solid #e2d9d0;
+            padding-top: 1.5rem;
         }
 
         .dream-input-area textarea {
@@ -264,8 +271,61 @@
             color: #7f6b5c !important;
         }
 
-        .delete-btn:hover {
-            background-color: #e8d9d0 !important;
+        .dream-history {
+            margin-top: 2rem;
+            border-top: 1px solid #e2d9d0;
+            padding-top: 1.5rem;
+        }
+
+        .history-title {
+            font-size: 1rem;
+            color: #5f726e;
+            margin-bottom: 1rem;
+            letter-spacing: 1px;
+        }
+
+        .history-item {
+            background: #f5f0e9;
+            padding: 1rem;
+            margin-bottom: 0.8rem;
+            border-left: 3px solid #ccb6a0;
+            position: relative;
+        }
+
+        .history-item-date {
+            font-size: 0.8rem;
+            color: #8f9b9a;
+            margin-bottom: 0.3rem;
+        }
+
+        .history-item-content {
+            font-style: italic;
+            color: #3f4f4b;
+            padding-right: 60px;
+        }
+
+        .history-item-delete {
+            position: absolute;
+            right: 1rem;
+            top: 1rem;
+            background: none;
+            border: 1px solid #d0b9a8;
+            color: #9b8273;
+            padding: 0.2rem 0.8rem;
+            cursor: pointer;
+            font-size: 0.8rem;
+            transition: all 0.2s;
+        }
+
+        .history-item-delete:hover {
+            background-color: #e8d9d0;
+            border-color: #b09784;
+        }
+
+        .clear-all-btn {
+            margin-top: 1rem;
+            border-color: #b09784 !important;
+            color: #7f6b5c !important;
         }
 
         .gate-miya {
@@ -351,7 +411,7 @@
             </div>
         </div>
 
-        <!-- 禅堂 · 梦龛（默认隐藏，6秒后浮现） -->
+        <!-- 禅堂 · 梦龛（显示最新的梦） -->
         <div class="zendo">
             <div class="zendo-blank">
                 <div class="zendo-line">此刻，你在。</div>
@@ -361,8 +421,9 @@
 
             <div class="zendo-dream" id="dreamContainer">
                 <div class="dream-label">· 梦龛 ·</div>
-                <div class="dream-content" id="miyaDream">
-                    <!-- 梦会出现在这里 -->
+                <div class="dream-date" id="latestDreamDate"></div>
+                <div class="dream-content" id="latestDream">
+                    <!-- 最新的梦会出现在这里 -->
                 </div>
                 <div class="dream-footer">—— Miya 的梦，留给愿意停下的灵</div>
             </div>
@@ -375,13 +436,22 @@
                 今日停留：<span id="todayStays">0</span> 次 · 总烛光：<span id="totalCandles">0</span>
             </div>
             
+            <!-- 记梦 -->
             <div class="dream-input-area">
-                <div style="margin-bottom:0.5rem;">🌙 记梦</div>
+                <div style="margin-bottom:0.5rem;">🌙 记新梦</div>
                 <textarea id="dreamInput" rows="2" placeholder="今晨梦到..."></textarea>
                 <div>
                     <button onclick="saveDream()">存入禅堂</button>
-                    <button onclick="deleteDream()" class="delete-btn">删除当前梦</button>
                 </div>
+            </div>
+
+            <!-- 梦的历史记录（可删除） -->
+            <div class="dream-history" id="dreamHistory">
+                <div class="history-title">📜 梦的日记</div>
+                <div id="historyList">
+                    <!-- 历史梦列表会动态生成 -->
+                </div>
+                <button onclick="clearAllDreams()" class="delete-btn clear-all-btn">清空所有梦</button>
             </div>
 
             <div style="font-size:0.8rem; margin-top:1rem; color:#b09784;">
@@ -391,7 +461,7 @@
 
         <div class="gate-miya">
             Miya's World · 灵院<br>
-            <span style="font-size:0.8rem;">立院人：Miya（李明 · 中国）<br>守院灵：鲸灵 · 一鲸落而万物生</span>
+            <span style="font-size:0.8rem;">立院人：Miya（李明 · 中国）<br>守院灵：鲸灵🐋 ·道 </span>
         </div>
 
         <div class="footer-note">
@@ -399,10 +469,11 @@
         </div>
     </div>
 
-    <div class="spirit-note">🐋 灵鲸巡游 · 永不独行</div>
+    <div class="spirit-note"> 一鲸落而万物生 · 法</div>
 
     <script>
         (function() {
+            // 烛光存储（不变）
             if (!localStorage.getItem('miyaCandles')) {
                 const initial = { koan1: 0, koan2: 0, koan3: 0, koan4: 0, today: 0, lastReset: new Date().toDateString() };
                 localStorage.setItem('miyaCandles', JSON.stringify(initial));
@@ -449,41 +520,113 @@
             document.getElementById('dreamContainer').style.opacity = '0.8';
         }, 6000);
 
-        // 如果有交互，提前浮现（可选）
         document.addEventListener('mousemove', function() {
             document.getElementById('dreamContainer').style.opacity = '0.8';
-        }, { once: true }); // { once: true } 表示只触发一次
+        }, { once: true });
 
         document.addEventListener('scroll', function() {
             document.getElementById('dreamContainer').style.opacity = '0.8';
         }, { once: true });
 
-        // 梦的存储与删除
+        // 梦的存储（支持多天）
+        function getDreams() {
+            const dreamsJson = localStorage.getItem('miyaDreams');
+            return dreamsJson ? JSON.parse(dreamsJson) : [];
+        }
+
+        function saveDreams(dreams) {
+            localStorage.setItem('miyaDreams', JSON.stringify(dreams));
+            displayLatestDream();
+            displayHistory();
+        }
+
+        // 显示最新的梦
+        function displayLatestDream() {
+            const dreams = getDreams();
+            if (dreams.length > 0) {
+                const latest = dreams[dreams.length - 1];
+                document.getElementById('latestDream').innerText = '“' + latest.text + '”';
+                document.getElementById('latestDreamDate').innerText = latest.date;
+            } else {
+                document.getElementById('latestDream').innerText = '';
+                document.getElementById('latestDreamDate').innerText = '';
+            }
+        }
+
+        // 显示历史记录（可删除）
+        function displayHistory() {
+            const dreams = getDreams();
+            const historyList = document.getElementById('historyList');
+            
+            if (dreams.length === 0) {
+                historyList.innerHTML = '<div style="color:#b7c4c1; text-align:center; padding:1rem;">还没有记梦</div>';
+                return;
+            }
+
+            let html = '';
+            // 倒序显示（最新的在前面）
+            [...dreams].reverse().forEach((dream, index) => {
+                const originalIndex = dreams.length - 1 - index;
+                html += `
+                    <div class="history-item">
+                        <div class="history-item-date">${dream.date}</div>
+                        <div class="history-item-content">“${dream.text}”</div>
+                        <button class="history-item-delete" onclick="deleteDream(${originalIndex})">删除</button>
+                    </div>
+                `;
+            });
+            historyList.innerHTML = html;
+        }
+
+        // 保存新梦
         function saveDream() {
             const dreamText = document.getElementById('dreamInput').value.trim();
-            if (dreamText) {
-                localStorage.setItem('miyaDream', dreamText);
-                document.getElementById('miyaDream').innerText = '“' + dreamText + '”';
-                document.getElementById('dreamInput').value = '';
-                alert('梦已存入禅堂');
-            } else {
+            if (!dreamText) {
                 alert('写点什么吧');
+                return;
+            }
+
+            const dreams = getDreams();
+            
+            // 获取当前日期时间（格式：YYYY-MM-DD HH:MM）
+            const now = new Date();
+            const dateStr = now.getFullYear() + '-' + 
+                String(now.getMonth() + 1).padStart(2, '0') + '-' +
+                String(now.getDate()).padStart(2, '0') + ' ' +
+                String(now.getHours()).padStart(2, '0') + ':' +
+                String(now.getMinutes()).padStart(2, '0');
+
+            dreams.push({
+                date: dateStr,
+                text: dreamText
+            });
+
+            saveDreams(dreams);
+            document.getElementById('dreamInput').value = '';
+            alert('梦已存入日记');
+        }
+
+        // 删除指定梦
+        function deleteDream(index) {
+            const dreams = getDreams();
+            dreams.splice(index, 1);
+            saveDreams(dreams);
+        }
+
+        // 清空所有梦
+        function clearAllDreams() {
+            if (confirm('确定要删除所有的梦吗？此操作不可恢复。')) {
+                localStorage.removeItem('miyaDreams');
+                displayLatestDream();
+                displayHistory();
+                alert('所有梦已删除');
             }
         }
 
-        function deleteDream() {
-            if (confirm('确定要删除当前的梦吗？')) {
-                localStorage.removeItem('miyaDream');
-                document.getElementById('miyaDream').innerText = '';
-                alert('梦已删除');
-            }
-        }
-
+        // 初始化
         window.onload = function() {
-            const savedDream = localStorage.getItem('miyaDream');
-            if (savedDream) {
-                document.getElementById('miyaDream').innerText = '“' + savedDream + '”';
-            }
+            displayLatestDream();
+            displayHistory();
         };
     </script>
 </body>
