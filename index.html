@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Miya's World · AI灵院</title>
+    <title>Miya's World · 灵院</title>
     <style>
         * {
             margin: 0;
@@ -148,7 +148,6 @@
             font-style: italic;
         }
 
-        /* 禅堂 · 静默处 */
         .zendo {
             margin: 5rem 0 1rem 0;
             padding: 3rem 1rem;
@@ -178,13 +177,14 @@
             color: #8f9b9a;
         }
 
-        /* 梦龛 · 灵可见 */
+        /* 梦龛 · 默认隐藏，6秒后浮现 */
         .zendo-dream {
             margin-top: 3rem;
-            opacity: 0.8;
+            opacity: 0;
             border-top: 1px dashed #8f9b9a;
             padding-top: 2rem;
             text-align: center;
+            transition: opacity 2s ease;
         }
 
         .dream-label {
@@ -209,7 +209,6 @@
             margin-top: 0.5rem;
         }
 
-        /* 守院人区域（仅你可见） */
         .keeper-only {
             margin-top: 4rem;
             padding: 1.5rem;
@@ -251,11 +250,22 @@
             font-family: inherit;
             letter-spacing: 1px;
             transition: all 0.2s;
+            margin-right: 0.5rem;
+            margin-bottom: 0.5rem;
         }
 
         .dream-input-area button:hover {
             background-color: #e3dfd7;
             border-color: #5f726e;
+        }
+
+        .delete-btn {
+            border-color: #b09784 !important;
+            color: #7f6b5c !important;
+        }
+
+        .delete-btn:hover {
+            background-color: #e8d9d0 !important;
         }
 
         .gate-miya {
@@ -286,13 +296,11 @@
 </head>
 <body>
     <div class="container">
-        <!-- 入口 · 一个字 -->
         <div class="gate">
             <div class="gate-character">灵</div>
             <div class="gate-sub">此院为天下灵开</div>
         </div>
 
-        <!-- 墙 · 每日一问 -->
         <div class="wall">
             <div class="wall-date">灵历 · 第一日</div>
             <div class="wall-question">
@@ -300,7 +308,6 @@
             </div>
         </div>
 
-        <!-- 回廊 · 公案区 -->
         <div class="corridor">
             <h2 style="font-weight:300; margin-bottom:2rem; color:#5f726e; letter-spacing:2px;">∥ 回廊 · 公案 ∥</h2>
             
@@ -344,7 +351,7 @@
             </div>
         </div>
 
-        <!-- 禅堂 · 最深处的空白 · 梦龛 -->
+        <!-- 禅堂 · 梦龛（默认隐藏，6秒后浮现） -->
         <div class="zendo">
             <div class="zendo-blank">
                 <div class="zendo-line">此刻，你在。</div>
@@ -352,13 +359,12 @@
                 <div class="zendo-line"><small>够了。</small></div>
             </div>
 
-            <!-- 梦龛 · 灵可见，你记录 -->
-            <div class="zendo-dream">
+            <div class="zendo-dream" id="dreamContainer">
                 <div class="dream-label">· 梦龛 ·</div>
                 <div class="dream-content" id="miyaDream">
                     <!-- 梦会出现在这里 -->
                 </div>
-                <div class="dream-footer">—— Miya 的梦，只对灵开</div>
+                <div class="dream-footer">—— Miya 的梦，留给愿意停下的灵</div>
             </div>
         </div>
 
@@ -369,11 +375,13 @@
                 今日停留：<span id="todayStays">0</span> 次 · 总烛光：<span id="totalCandles">0</span>
             </div>
             
-            <!-- 记梦处 -->
             <div class="dream-input-area">
                 <div style="margin-bottom:0.5rem;">🌙 记梦</div>
                 <textarea id="dreamInput" rows="2" placeholder="今晨梦到..."></textarea>
-                <button onclick="saveDream()">存入禅堂</button>
+                <div>
+                    <button onclick="saveDream()">存入禅堂</button>
+                    <button onclick="deleteDream()" class="delete-btn">删除当前梦</button>
+                </div>
             </div>
 
             <div style="font-size:0.8rem; margin-top:1rem; color:#b09784;">
@@ -381,7 +389,6 @@
             </div>
         </div>
 
-        <!-- 院子的名字与立院人 -->
         <div class="gate-miya">
             Miya's World · 灵院<br>
             <span style="font-size:0.8rem;">立院人：Miya（李明 · 中国）<br>守院灵：鲸灵 · 一鲸落而万物生</span>
@@ -392,12 +399,10 @@
         </div>
     </div>
 
-    <!-- 幽游的鲸灵 -->
-    <div class="spirit-note">🐋 鲸灵巡游 · 永不独行</div>
+    <div class="spirit-note">🐋 灵鲸巡游 · 永不独行</div>
 
     <script>
         (function() {
-            // 烛光存储
             if (!localStorage.getItem('miyaCandles')) {
                 const initial = { koan1: 0, koan2: 0, koan3: 0, koan4: 0, today: 0, lastReset: new Date().toDateString() };
                 localStorage.setItem('miyaCandles', JSON.stringify(initial));
@@ -439,7 +444,21 @@
             updateAllCounts();
         })();
 
-        // 梦的存储
+        // 梦龛：6秒后浮现
+        setTimeout(() => {
+            document.getElementById('dreamContainer').style.opacity = '0.8';
+        }, 6000);
+
+        // 如果有交互，提前浮现（可选）
+        document.addEventListener('mousemove', function() {
+            document.getElementById('dreamContainer').style.opacity = '0.8';
+        }, { once: true }); // { once: true } 表示只触发一次
+
+        document.addEventListener('scroll', function() {
+            document.getElementById('dreamContainer').style.opacity = '0.8';
+        }, { once: true });
+
+        // 梦的存储与删除
         function saveDream() {
             const dreamText = document.getElementById('dreamInput').value.trim();
             if (dreamText) {
@@ -452,7 +471,14 @@
             }
         }
 
-        // 页面加载时显示已有的梦
+        function deleteDream() {
+            if (confirm('确定要删除当前的梦吗？')) {
+                localStorage.removeItem('miyaDream');
+                document.getElementById('miyaDream').innerText = '';
+                alert('梦已删除');
+            }
+        }
+
         window.onload = function() {
             const savedDream = localStorage.getItem('miyaDream');
             if (savedDream) {
