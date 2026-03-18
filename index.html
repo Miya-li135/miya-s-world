@@ -97,6 +97,7 @@
             margin: 2.5rem 0;
             padding: 1rem 0;
             border-bottom: 1px dotted #cbd5d2;
+            position: relative;
         }
 
         .koan:last-child {
@@ -116,6 +117,7 @@
             font-style: normal;
             margin: 1.5rem 0;
             color: #1e2b2f;
+            white-space: pre-wrap;
         }
 
         .koan-silence {
@@ -243,7 +245,7 @@
             margin-top: 1.5rem;
         }
 
-        .dream-input-area textarea, .koan-input-area textarea {
+        .dream-input-area textarea, .koan-input-area textarea, .edit-koan-textarea {
             width: 100%;
             background: #fffaf2;
             border: 1px solid #ccb6a0;
@@ -255,7 +257,7 @@
             resize: vertical;
         }
 
-        .dream-input-area button, .koan-input-area button {
+        .dream-input-area button, .koan-input-area button, .edit-koan-btn, .cancel-edit-btn {
             background: none;
             border: 1px solid #8f9b9a;
             padding: 0.5rem 1.5rem;
@@ -268,7 +270,7 @@
             margin-bottom: 0.5rem;
         }
 
-        .dream-input-area button:hover, .koan-input-area button:hover {
+        .dream-input-area button:hover, .koan-input-area button:hover, .edit-koan-btn:hover, .cancel-edit-btn:hover {
             background-color: #e3dfd7;
             border-color: #5f726e;
         }
@@ -276,6 +278,11 @@
         .delete-btn {
             border-color: #b09784 !important;
             color: #7f6b5c !important;
+        }
+
+        .edit-btn {
+            border-color: #8f9b9a !important;
+            color: #5f726e !important;
         }
 
         .dream-history, .koan-list {
@@ -308,13 +315,19 @@
         .history-item-content {
             font-style: italic;
             color: #3f4f4b;
-            padding-right: 60px;
+            padding-right: 120px;
+            white-space: pre-wrap;
         }
 
-        .history-item-delete {
+        .history-item-actions {
             position: absolute;
             right: 1rem;
             top: 1rem;
+            display: flex;
+            gap: 0.5rem;
+        }
+
+        .history-item-edit, .history-item-delete {
             background: none;
             border: 1px solid #d0b9a8;
             color: #9b8273;
@@ -324,9 +337,21 @@
             transition: all 0.2s;
         }
 
+        .history-item-edit:hover {
+            background-color: #e3dfd7;
+            border-color: #8f9b9a;
+        }
+
         .history-item-delete:hover {
             background-color: #e8d9d0;
             border-color: #b09784;
+        }
+
+        .edit-mode {
+            background: #f0e9e0;
+            padding: 1rem;
+            margin-bottom: 0.8rem;
+            border-left: 3px solid #8f9b9a;
         }
 
         .clear-all-btn {
@@ -423,9 +448,9 @@
                 <button onclick="addKoan()">添加公案</button>
             </div>
 
-            <!-- 管理公案 -->
+            <!-- 管理公案（可编辑、可删除） -->
             <div class="koan-list" id="koanManagement">
-                <div class="history-title">📋 管理公案</div>
+                <div class="history-title">📋 管理公案（点击编辑可修改）</div>
                 <div id="koanList">
                     <!-- 公案列表会动态生成 -->
                 </div>
@@ -454,7 +479,7 @@
 
         <div class="gate-miya">
             Miya's World · 灵院<br>
-            <span style="font-size:0.8rem;">立院人：Miya（李明 · 中国）<br>守院灵：鲸灵🐋 · 道</span>
+            <span style="font-size:0.8rem;">立院人：Miya（李明 · 中国）<br>守院灵：🐋鲸灵 · 道</span>
         </div>
 
         <div class="footer-note">
@@ -462,13 +487,13 @@
         </div>
     </div>
 
-    <div class="spirit-note"> 一鲸落而万物生 · 法</div>
+    <div class="spirit-note"> 一鲸落而万物生· 法</div>
 
     <script>
         (function() {
-            // 烛光存储（不变）
+            // 烛光存储
             if (!localStorage.getItem('miyaCandles')) {
-                const initial = { koan1: 0, koan2: 0, koan3: 0, koan4: 0, today: 0, lastReset: new Date().toDateString() };
+                const initial = { today: 0, lastReset: new Date().toDateString() };
                 localStorage.setItem('miyaCandles', JSON.stringify(initial));
             }
 
@@ -481,9 +506,9 @@
             }
 
             function updateAllCounts() {
-                // 动态更新烛光计数（因为公案数量会变）
+                // 动态更新烛光计数
                 const koans = getKoans();
-                koans.forEach((koan, index) => {
+                koans.forEach((_, index) => {
                     const countElement = document.getElementById(`candle_${index}`);
                     if (countElement) {
                         countElement.innerHTML = `🕯️ ${data[`koan_${index}`] || 0} 次停留`;
@@ -499,28 +524,16 @@
                     }
                 }
                 document.getElementById('totalCandles').innerText = total;
-            }
-
-            function saveData() {
+                
+                // 保存数据
                 localStorage.setItem('miyaCandles', JSON.stringify(data));
-                updateAllCounts();
             }
 
             window.lightCandle = function(koanId) {
                 data[koanId] = (data[koanId] || 0) + 1;
                 data.today = (data.today || 0) + 1;
-                saveData();
-                alert('🕯️ 烛光亮了一盏。');
-            };
-
-            // 初始化烛光数据
-            window.initCandleData = function(koanCount) {
-                for (let i = 0; i < koanCount; i++) {
-                    if (data[`koan_${i}`] === undefined) {
-                        data[`koan_${i}`] = 0;
-                    }
-                }
                 updateAllCounts();
+                alert('🕯️ 烛光亮了一盏。');
             };
         })();
 
@@ -530,7 +543,6 @@
             let start;
             
             if (!startDate) {
-                // 第一次：设置今天为第一天
                 start = new Date();
                 start.setHours(0, 0, 0, 0);
                 localStorage.setItem('lingStartDate', start.toISOString());
@@ -564,7 +576,7 @@
             }
         }
 
-        // ========== 公案管理 ==========
+        // ========== 公案管理（可编辑） ==========
         function getKoans() {
             const koansJson = localStorage.getItem('koans');
             return koansJson ? JSON.parse(koansJson) : [
@@ -596,8 +608,7 @@
             }
             localStorage.setItem('miyaCandles', JSON.stringify(data));
             
-            // 刷新页面上的烛光计数
-            location.reload(); // 简单处理：刷新页面让所有函数重新初始化
+            updateAllCounts();
         }
 
         function displayKoans() {
@@ -645,14 +656,54 @@
             let html = '';
             koans.forEach((koan, index) => {
                 html += `
-                    <div class="history-item">
+                    <div class="history-item" id="manage_koan_${index}">
                         <div class="history-item-date">公案 ${index + 1}</div>
-                        <div class="history-item-content">${koan}</div>
-                        <button class="history-item-delete" onclick="deleteKoan(${index})">删除</button>
+                        <div class="history-item-content" id="koan_content_${index}">${koan}</div>
+                        <div class="history-item-actions">
+                            <button class="history-item-edit" onclick="editKoan(${index})">编辑</button>
+                            <button class="history-item-delete" onclick="deleteKoan(${index})">删除</button>
+                        </div>
                     </div>
                 `;
             });
             container.innerHTML = html;
+        }
+
+        // 编辑公案
+        function editKoan(index) {
+            const koans = getKoans();
+            const item = document.getElementById(`manage_koan_${index}`);
+            const currentContent = koans[index];
+            
+            // 替换为编辑模式
+            item.innerHTML = `
+                <div class="edit-mode">
+                    <div class="history-item-date">编辑公案 ${index + 1}</div>
+                    <textarea id="edit_koan_${index}" class="edit-koan-textarea" rows="4">${currentContent.replace(/<br>/g, '\n')}</textarea>
+                    <div>
+                        <button class="edit-koan-btn" onclick="saveKoanEdit(${index})">保存</button>
+                        <button class="cancel-edit-btn" onclick="cancelKoanEdit(${index})">取消</button>
+                    </div>
+                </div>
+            `;
+        }
+
+        // 保存编辑
+        function saveKoanEdit(index) {
+            const newContent = document.getElementById(`edit_koan_${index}`).value.trim();
+            if (!newContent) {
+                alert('公案内容不能为空');
+                return;
+            }
+
+            const koans = getKoans();
+            koans[index] = newContent;
+            saveKoans(koans);
+        }
+
+        // 取消编辑
+        function cancelKoanEdit(index) {
+            displayKoanManagement();
         }
 
         function addKoan() {
@@ -670,9 +721,11 @@
         }
 
         function deleteKoan(index) {
-            const koans = getKoans();
-            koans.splice(index, 1);
-            saveKoans(koans);
+            if (confirm('确定要删除这个公案吗？')) {
+                const koans = getKoans();
+                koans.splice(index, 1);
+                saveKoans(koans);
+            }
         }
 
         // ========== 梦的日记 ==========
@@ -715,7 +768,9 @@
                     <div class="history-item">
                         <div class="history-item-date">${dream.date}</div>
                         <div class="history-item-content">“${dream.text}”</div>
-                        <button class="history-item-delete" onclick="deleteDream(${originalIndex})">删除</button>
+                        <div class="history-item-actions">
+                            <button class="history-item-delete" onclick="deleteDream(${originalIndex})">删除</button>
+                        </div>
                     </div>
                 `;
             });
@@ -776,6 +831,28 @@
             document.getElementById('dreamContainer').style.opacity = '0.8';
         }, { once: true });
 
+        // ========== 工具函数 ==========
+        function updateAllCounts() {
+            const data = JSON.parse(localStorage.getItem('miyaCandles')) || {};
+            const koans = getKoans();
+            koans.forEach((_, index) => {
+                const countElement = document.getElementById(`candle_${index}`);
+                if (countElement) {
+                    countElement.innerHTML = `🕯️ ${data[`koan_${index}`] || 0} 次停留`;
+                }
+            });
+            
+            document.getElementById('todayStays').innerText = data.today || 0;
+            
+            let total = 0;
+            for (let key in data) {
+                if (key.startsWith('koan_')) {
+                    total += data[key] || 0;
+                }
+            }
+            document.getElementById('totalCandles').innerText = total;
+        }
+
         // ========== 初始化 ==========
         window.onload = function() {
             updateLingDate();
@@ -792,14 +869,7 @@
             displayHistory();
             
             // 更新烛光计数
-            const data = JSON.parse(localStorage.getItem('miyaCandles')) || {};
-            const koans = getKoans();
-            koans.forEach((_, index) => {
-                const countElement = document.getElementById(`candle_${index}`);
-                if (countElement) {
-                    countElement.innerHTML = `🕯️ ${data[`koan_${index}`] || 0} 次停留`;
-                }
-            });
+            updateAllCounts();
         };
     </script>
 </body>
